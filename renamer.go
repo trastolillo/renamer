@@ -1,9 +1,7 @@
 package main
 
 import (
-	"errors"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,6 +14,7 @@ import (
 const patternRegex string = `(s\d+e\d+)|(\d+x\d+)`
 
 var regex *regexp.Regexp = regexp.MustCompile(patternRegex)
+
 var extensionesSubtitulos = [...]string{".srt", ".idx", ".sub"}
 
 var carpeta string
@@ -32,25 +31,18 @@ func main() {
 	listaArchivos := fileList(carpeta)
 
 	for _, subtitulo := range listaArchivos {
-		// subtitulo, err := seleccionarArchivoSubtitulo(&listaArchivos, subtitulo)
-		// if err != nil {
-		// 	fmt.Printf("%v/%v%v\n", carpeta, subtitulo.nombre, subtitulo.ext)
-		// 	remove(listaArchivos, index)
-		// }
 		if subtitulo.esSubtitulo() {
 			for _, video := range listaArchivos {
 				if !video.esSubtitulo() && reflect.DeepEqual(extraerNumeroDeCapitulo(video),
 					extraerNumeroDeCapitulo(subtitulo)) {
 					nuevoNombre := carpeta + "/" + video.nombre + subtitulo.ext
 					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
-					println(nuevoNombre)
-					println(viejoNombre)
 					os.Rename(viejoNombre, nuevoNombre)
+					println(video.nombre, "renombrado")
 				}
 			}
 		}
 	}
-
 }
 
 func procesarFlags() {
@@ -86,23 +78,6 @@ func extraerNumeroDeCapitulo(archivo Archivo) []string {
 	return re.FindAllString(string(cadenaCompleta), -1)
 }
 
-func seleccionarArchivoSubtitulo(videos *[]Archivo, subtitulo Archivo) (Archivo, error) {
-	err := errors.New("No hay coincidencia entre el archivo de vídeo y el de subtítulos")
-	vacio := Archivo{}
-	for index, video := range *videos {
-		fmt.Println(video.nombre, subtitulo, subtitulo.esSubtitulo() && !video.esSubtitulo() && reflect.DeepEqual(extraerNumeroDeCapitulo(video),
-			extraerNumeroDeCapitulo(subtitulo)))
-		if subtitulo.esSubtitulo() && !video.esSubtitulo() && reflect.DeepEqual(extraerNumeroDeCapitulo(video),
-			extraerNumeroDeCapitulo(subtitulo)) {
-			entrega := subtitulo
-			fmt.Println("dentro: ", subtitulo, "long", len(*videos))
-			remove(*videos, index)
-			return entrega, nil
-		}
-	}
-	return vacio, err
-}
-
 func (this Archivo) esSubtitulo() bool {
 	for _, extension := range extensionesSubtitulos {
 		if this.ext == extension {
@@ -110,16 +85,4 @@ func (this Archivo) esSubtitulo() bool {
 		}
 	}
 	return false
-}
-
-func FilenameWithoutExtension(fn string) string {
-	return strings.TrimSuffix(fn, path.Ext(fn))
-}
-
-func remove(a []Archivo, i int) []Archivo {
-	copy(a[i:], a[i+1:]) // Shift a[i+1:] left one index.
-	// a[len(a)-1] = 0      // Erase last element (write zero value).
-	// a = a[:len(a)-1]     // Truncate slice.
-	b := a[:len(a)-1]
-	return b
 }
