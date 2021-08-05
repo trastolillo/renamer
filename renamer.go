@@ -2,17 +2,18 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
-const patternRegex string = `(s\d+e\d+)|(\d+x\d+)`
+const patternRegex string = `([sS]\d+[eE]\d+)|(\d+[xX]\d+)`
 
 var regex *regexp.Regexp = regexp.MustCompile(patternRegex)
 
@@ -23,8 +24,11 @@ var carpeta string
 var cadenaArchivo string
 
 type Archivo struct {
-	nombre string
-	ext    string
+	nombre    string
+	ext       string
+	muestra   string
+	temporada byte
+	episodio  byte
 }
 
 func main() {
@@ -32,19 +36,8 @@ func main() {
 
 	listaArchivos := fileList(carpeta)
 
-	for _, subtitulo := range listaArchivos {
-		if subtitulo.esTipoArchivo(extensionesSubtitulos) {
-			for _, video := range listaArchivos {
-				if video.esTipoArchivo(extensionesVideos) && reflect.DeepEqual(extraerNumeroDeCapitulo(video),
-					extraerNumeroDeCapitulo(subtitulo)) {
-					nuevoNombre := carpeta + "/" + video.nombre + subtitulo.ext
-					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
-					os.Rename(viejoNombre, nuevoNombre)
-					println(video.nombre, "renombrado")
-				}
-			}
-		}
-	}
+	renombrar(&listaArchivos)
+
 }
 
 func procesarFlags() {
@@ -65,10 +58,34 @@ func fileList(carpeta string) []Archivo {
 	return listarArchivos(files, cadenaArchivo)
 }
 
-func extraerNumeroDeCapitulo(archivo Archivo) []string {
-	cadenaCompleta := regex.Find([]byte(archivo.nombre))
+func (this *Archivo) extraerNumeroDeCapitulo() {
+	//? Extracción de temporada y episodio
+	cadenaCompleta := regex.Find([]byte(this.nombre))
+	println("cadenacompleta", string(cadenaCompleta))
 	re := regexp.MustCompile("[0-9]+")
-	return re.FindAllString(string(cadenaCompleta), -1)
+	capString := re.FindAllString(string(cadenaCompleta), -1)
+	println(this.nombre, len(capString))
+	if len(capString) > 0 {
+		temporada, _ := strconv.ParseUint(capString[0], 10, 8)
+		episodio, _ := strconv.ParseUint(capString[1], 10, 8)
+		this.temporada = byte(temporada)
+		this.episodio = byte(episodio)
+	}
+	//? Extracción de la muestra
+	reMuestra := regexp.MustCompile("^[a-zA-Z]+")
+	capMuestra := reMuestra.Find([]byte(this.nombre))
+	this.muestra = string(capMuestra)
+}
+
+func (this Archivo) compareTo(archivo Archivo) bool {
+	var resultado bool = false
+	if this.temporada != 0 {
+		resultado = this.temporada == archivo.temporada &&
+			this.episodio == archivo.episodio &&
+			this.muestra == archivo.muestra &&
+			this.nombre != archivo.nombre
+	}
+	return resultado
 }
 
 func (this Archivo) esTipoArchivo(listaExtensiones []string) bool {
@@ -78,12 +95,6 @@ func (this Archivo) esTipoArchivo(listaExtensiones []string) bool {
 		}
 	}
 	return false
-}
-
-func filtrarArchivosPorNombre(listaArchivos []Archivo) []Archivo {
-	// retorno := []Archivo{}
-	return nil
-
 }
 
 func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) []Archivo {
@@ -101,4 +112,25 @@ func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) []Archivo {
 		}
 	}
 	return sliceArchivos
+}
+
+func renombrar(listaArchivos *[]Archivo) {
+	for _, subtitulo := range *listaArchivos {
+		if subtitulo.esTipoArchivo(extensionesSubtitulos) {
+			for _, video := range *listaArchivos {
+				subtitulo.extraerNumeroDeCapitulo()
+				video.extraerNumeroDeCapitulo()
+				// fmt.Println("video", video)
+				// fmt.Println("sub", subtitulo)
+				if video.esTipoArchivo(extensionesVideos) && subtitulo.compareTo(video) {
+					nuevoNombre := carpeta + "/" + video.nombre + subtitulo.ext
+					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
+					os.Rename(viejoNombre, nuevoNombre)
+					println(viejoNombre, "renombrado a", nuevoNombre)
+				} else {
+					fmt.Println("Sin entrar al bucle de renombre")
+				}
+			}
+		}
+	}
 }
