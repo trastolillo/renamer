@@ -64,7 +64,6 @@ func (this *Archivo) extraerNumeroDeCapitulo() {
 	println("cadenacompleta", string(cadenaCompleta))
 	re := regexp.MustCompile("[0-9]+")
 	capString := re.FindAllString(string(cadenaCompleta), -1)
-	println(this.nombre, len(capString))
 	if len(capString) > 0 {
 		temporada, _ := strconv.ParseUint(capString[0], 10, 8)
 		episodio, _ := strconv.ParseUint(capString[1], 10, 8)
@@ -82,8 +81,8 @@ func (this Archivo) compareTo(archivo Archivo) bool {
 	if this.temporada != 0 {
 		resultado = this.temporada == archivo.temporada &&
 			this.episodio == archivo.episodio &&
-			this.muestra == archivo.muestra &&
-			this.nombre != archivo.nombre
+			strings.ToLower(this.muestra) == strings.ToLower(this.muestra) &&
+			strings.ToLower(this.nombre) != strings.ToLower(archivo.nombre)
 	}
 	return resultado
 }
@@ -102,7 +101,7 @@ func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) []Archivo {
 	condicion := true
 	for _, file := range files {
 		if nombreDeArchivo != "" {
-			condicion = strings.Contains(file.Name(), nombreDeArchivo)
+			condicion = strings.Contains(strings.ToLower(file.Name()), strings.ToLower(nombreDeArchivo))
 		}
 		if !file.IsDir() && condicion {
 			extension := path.Ext(file.Name())
@@ -115,6 +114,7 @@ func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) []Archivo {
 }
 
 func renombrar(listaArchivos *[]Archivo) {
+	var contador byte = 0
 	for _, subtitulo := range *listaArchivos {
 		if subtitulo.esTipoArchivo(extensionesSubtitulos) {
 			for _, video := range *listaArchivos {
@@ -127,10 +127,16 @@ func renombrar(listaArchivos *[]Archivo) {
 					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
 					os.Rename(viejoNombre, nuevoNombre)
 					println(viejoNombre, "renombrado a", nuevoNombre)
+					contador++
 				} else {
 					fmt.Println("Sin entrar al bucle de renombre")
 				}
 			}
 		}
+	}
+	if contador == 0 {
+		fmt.Println("Ningún archivo renombrado")
+	} else {
+		fmt.Println("Archivos renombrados:", contador)
 	}
 }
