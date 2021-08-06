@@ -120,8 +120,6 @@ func renombrar(listaArchivos *[]Archivo) {
 			for _, video := range *listaArchivos {
 				subtitulo.extraerNumeroDeCapitulo()
 				video.extraerNumeroDeCapitulo()
-				// fmt.Println("video", video)
-				// fmt.Println("sub", subtitulo)
 				if video.esTipoArchivo(extensionesVideos) && subtitulo.compareTo(video) {
 					nuevoNombre := carpeta + "/" + video.nombre + subtitulo.ext
 					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
