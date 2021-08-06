@@ -14,6 +14,7 @@ import (
 )
 
 const patternRegex string = `([sS]\d+[eE]\d+)|(\d+[xX]\d+)`
+const appName = "Sub Renamer"
 
 var regex *regexp.Regexp = regexp.MustCompile(patternRegex)
 
@@ -44,6 +45,11 @@ func procesarFlags() {
 	// Declaraciones de Flag
 	flag.StringVar(&carpeta, "d", "./", "Renombra todos los ficheros dentro de la carpeta")
 	flag.StringVar(&cadenaArchivo, "f", "", "Renombra al archivo que coincida con la cadena")
+	// Validación
+	if carpeta == "" {
+		flag.Usage()
+		os.Exit(2)
+	}
 	// Análisis de opciones
 	flag.Parse()
 }
@@ -120,8 +126,6 @@ func renombrar(listaArchivos *[]Archivo) {
 			for _, video := range *listaArchivos {
 				subtitulo.extraerNumeroDeCapitulo()
 				video.extraerNumeroDeCapitulo()
-				// fmt.Println("video", video)
-				// fmt.Println("sub", subtitulo)
 				if video.esTipoArchivo(extensionesVideos) && subtitulo.compareTo(video) {
 					nuevoNombre := carpeta + "/" + video.nombre + subtitulo.ext
 					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
@@ -139,4 +143,12 @@ func renombrar(listaArchivos *[]Archivo) {
 	} else {
 		fmt.Println("Archivos renombrados:", contador)
 	}
+}
+
+func usage() {
+	msg := fmt.Sprintf(`usage: %s [OPTIONS]
+	%s is a simple tool to rename subtitles files
+	`, appName, appName)
+	fmt.Println(msg)
+	flag.PrintDefaults()
 }
