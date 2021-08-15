@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -61,16 +62,18 @@ func fileList(carpeta string) []Archivo {
 		log.Fatal(err)
 	}
 	// Lista de archivos
-	return listarArchivos(files, cadenaArchivo)
+	lista, fallo := listarArchivos(files, cadenaArchivo)
+	if fallo != nil {
+		log.Fatal(fallo)
+	}
+	return lista
 }
 
 func (this *Archivo) extraerNumeroDeCapitulo() {
 	//? Extracción de temporada y episodio
 	cadenaCompleta := regex.Find([]byte(this.nombre))
-	println("cadenacompleta", string(cadenaCompleta))
 	re := regexp.MustCompile("[0-9]+")
 	capString := re.FindAllString(string(cadenaCompleta), -1)
-	println(this.nombre, len(capString))
 	if len(capString) > 0 {
 		temporada, _ := strconv.ParseUint(capString[0], 10, 8)
 		episodio, _ := strconv.ParseUint(capString[1], 10, 8)
@@ -81,6 +84,7 @@ func (this *Archivo) extraerNumeroDeCapitulo() {
 	reMuestra := regexp.MustCompile("^[a-zA-Z]+")
 	capMuestra := reMuestra.Find([]byte(this.nombre))
 	this.muestra = string(capMuestra)
+	fmt.Println("muestra", this.muestra)
 }
 
 func (this Archivo) compareTo(archivo Archivo) bool {
@@ -103,10 +107,12 @@ func (this Archivo) esTipoArchivo(listaExtensiones []string) bool {
 	return false
 }
 
-func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) []Archivo {
+func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) ([]Archivo, error) {
 	var sliceArchivos []Archivo
 	condicion := true
 	for _, file := range files {
+		// fmt.Println("listarArchivos - variable file:", file.Name())
+		fmt.Println("listarArchivos - variable nombreDeArchivo:", nombreDeArchivo)
 		if nombreDeArchivo != "" {
 			condicion = strings.Contains(file.Name(), nombreDeArchivo)
 		}
@@ -117,7 +123,10 @@ func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) []Archivo {
 				Archivo{nombre: nombre, ext: extension})
 		}
 	}
-	return sliceArchivos
+	if len(sliceArchivos) == 0 {
+		return nil, errors.New("No se encuentra el archivo")
+	}
+	return sliceArchivos, nil
 }
 
 func renombrar(listaArchivos *[]Archivo) {
@@ -135,6 +144,8 @@ func renombrar(listaArchivos *[]Archivo) {
 					fmt.Println("Sin entrar al bucle de renombre")
 				}
 			}
+		} else {
+			fmt.Printf("%v%v no procesado\n", subtitulo.nombre, subtitulo.ext)
 		}
 	}
 }
