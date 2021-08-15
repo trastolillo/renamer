@@ -92,8 +92,8 @@ func (this Archivo) compareTo(archivo Archivo) bool {
 	if this.temporada != 0 {
 		resultado = this.temporada == archivo.temporada &&
 			this.episodio == archivo.episodio &&
-			strings.ToLower(this.muestra) == strings.ToLower(this.muestra) &&
-			strings.ToLower(this.nombre) != strings.ToLower(archivo.nombre)
+			this.muestra == archivo.muestra &&
+			this.nombre != archivo.nombre
 	}
 	return resultado
 }
@@ -114,7 +114,7 @@ func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) ([]Archivo, err
 		// fmt.Println("listarArchivos - variable file:", file.Name())
 		fmt.Println("listarArchivos - variable nombreDeArchivo:", nombreDeArchivo)
 		if nombreDeArchivo != "" {
-			condicion = strings.Contains(strings.ToLower(file.Name()), strings.ToLower(nombreDeArchivo))
+			condicion = strings.Contains(file.Name(), nombreDeArchivo)
 		}
 		if !file.IsDir() && condicion {
 			extension := path.Ext(file.Name())
@@ -130,7 +130,6 @@ func listarArchivos(files []fs.FileInfo, nombreDeArchivo string) ([]Archivo, err
 }
 
 func renombrar(listaArchivos *[]Archivo) {
-	var contador byte = 0
 	for _, subtitulo := range *listaArchivos {
 		if subtitulo.esTipoArchivo(extensionesSubtitulos) {
 			for _, video := range *listaArchivos {
@@ -141,7 +140,6 @@ func renombrar(listaArchivos *[]Archivo) {
 					viejoNombre := carpeta + "/" + subtitulo.nombre + subtitulo.ext
 					os.Rename(viejoNombre, nuevoNombre)
 					println(viejoNombre, "renombrado a", nuevoNombre)
-					contador++
 				} else {
 					fmt.Println("Sin entrar al bucle de renombre")
 				}
@@ -149,11 +147,6 @@ func renombrar(listaArchivos *[]Archivo) {
 		} else {
 			fmt.Printf("%v%v no procesado\n", subtitulo.nombre, subtitulo.ext)
 		}
-	}
-	if contador == 0 {
-		fmt.Println("Ningún archivo renombrado")
-	} else {
-		fmt.Println("Archivos renombrados:", contador)
 	}
 }
 
